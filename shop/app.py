@@ -9,6 +9,8 @@ docs/the-bug.md (spoilers) if you are a human judge.
 
 from __future__ import annotations
 
+import itertools
+import threading
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -48,6 +50,14 @@ class RefundRequest(BaseModel):
 
 
 _orders: dict[str, dict] = {}
+_order_ids = itertools.count(1)
+
+# Idempotency: one result per idempotency_key. A per-key lock makes a
+# concurrent second submit wait for the first and reuse its result instead
+# of charging again.
+_by_key: dict[str, dict] = {}
+_key_locks: dict[str, threading.Lock] = {}
+_state_lock = threading.Lock()
 
 
 @app.get("/")
@@ -71,8 +81,25 @@ def checkout(req: CheckoutRequest) -> dict:
     if product is None:
         raise HTTPException(status_code=404, detail=f"unknown item {req.item}")
 
+    key = req.idempotency_key
+    if key is None:
+        return _place_order(req, product)
+
+    with _state_lock:
+        key_lock = _key_locks.setdefault(key, threading.Lock())
+    with key_lock:
+        existing = _by_key.get(key)
+        if existing is not None:
+            return existing
+        result = _place_order(req, product)
+        _by_key[key] = result
+        return result
+
+
+def _place_order(req: CheckoutRequest, product: dict) -> dict:
     amount = product["price_pence"] * req.quantity
-    order_id = f"ord_{len(_orders) + 1:04d}"
+    with _state_lock:
+        order_id = f"ord_{next(_order_ids):04d}"
 
     charge = ledger.charge(
         order_id=order_id,
@@ -115,6 +142,11 @@ def refund(req: RefundRequest) -> dict:
 @app.post("/api/_reset")
 def reset() -> dict:
     """Demo helper: wipe orders and the ledger before recording a take."""
-    _orders.clear()
+    global _order_ids
+    with _state_lock:
+        _orders.clear()
+        _by_key.clear()
+        _key_locks.clear()
+        _order_ids = itertools.count(1)
     ledger.reset()
     return {"ok": True}
