@@ -4,10 +4,6 @@ These pass on the shipped code. They deliberately do NOT cover retries:
 writing the test that exposes the double charge is the Repro agent's job.
 """
 
-import os
-
-os.environ.setdefault("PAYMENT_LATENCY_MS", "0")  # keep tests fast
-
 import pytest
 from fastapi.testclient import TestClient
 

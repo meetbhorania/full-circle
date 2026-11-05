@@ -1,19 +1,24 @@
 """Mock payments provider for the Brew & Co demo shop.
 
-Keeps an in-memory ledger of charges and refunds so the double charge
-(and the refund that fixes it) is visible at GET /api/charges.
+Keeps a ledger of charges and refunds so the double charge (and the refund
+that fixes it) is visible at GET /api/charges. The ledger is saved to a JSON
+file (LEDGER_PATH, default shop/data/ledger.json), so it survives the shop
+restarting after a deploy.
 
 Nothing here touches real money.
 """
 
 from __future__ import annotations
 
-import itertools
+import json
 import os
 import threading
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
+from pathlib import Path
+
+DEFAULT_PATH = Path(__file__).parent / "data" / "ledger.json"
 
 
 @dataclass
@@ -39,17 +44,49 @@ class Refund:
     approved_by: str
     created_at: str
 
+    def to_dict(self) -> dict:
+        return asdict(self)
 
-@dataclass
+
 class Ledger:
-    charges: list[Charge] = field(default_factory=list)
-    refunds: list[Refund] = field(default_factory=list)
-    _ids: itertools.count = field(default_factory=lambda: itertools.count(1))
-    _lock: threading.Lock = field(default_factory=threading.Lock)
+    def __init__(self, path: Path | None = None) -> None:
+        self.path = Path(path or os.environ.get("LEDGER_PATH", DEFAULT_PATH))
+        self._lock = threading.Lock()
+        self.charges: list[Charge] = []
+        self.refunds: list[Refund] = []
+        self._seq = 0
+        self._load()
+
+    # --- persistence -----------------------------------------------------
+    def _load(self) -> None:
+        if not self.path.exists():
+            return
+        data = json.loads(self.path.read_text() or "{}")
+        self.charges = [Charge(**c) for c in data.get("charges", [])]
+        self.refunds = [Refund(**r) for r in data.get("refunds", [])]
+        self._seq = data.get("seq", 0)
+
+    def _save(self) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = self.path.with_suffix(".tmp")
+        tmp.write_text(json.dumps({
+            "seq": self._seq,
+            "charges": [c.to_dict() for c in self.charges],
+            "refunds": [r.to_dict() for r in self.refunds],
+        }, indent=2))
+        tmp.replace(self.path)
 
     def _next(self, prefix: str) -> str:
-        return f"{prefix}_{next(self._ids):04d}"
+        self._seq += 1
+        return f"{prefix}_{self._seq:04d}"
 
+    # --- reads -----------------------------------------------------------
+    def order_count(self) -> int:
+        """How many distinct orders have been charged so far."""
+        with self._lock:
+            return len({c.order_id for c in self.charges})
+
+    # --- writes ----------------------------------------------------------
     def charge(
         self,
         order_id: str,
@@ -76,6 +113,7 @@ class Ledger:
                 created_at=_now(),
             )
             self.charges.append(c)
+            self._save()
             return c
 
     def refund(self, charge_id: str, amount_pence: int, reason: str, approved_by: str) -> Refund:
@@ -96,13 +134,15 @@ class Ledger:
                 created_at=_now(),
             )
             self.refunds.append(r)
+            self._save()
             return r
 
     def reset(self) -> None:
         with self._lock:
             self.charges.clear()
             self.refunds.clear()
-            self._ids = itertools.count(1)
+            self._seq = 0
+            self._save()
 
 
 def _now() -> str:

@@ -72,7 +72,7 @@ def checkout(req: CheckoutRequest) -> dict:
         raise HTTPException(status_code=404, detail=f"unknown item {req.item}")
 
     amount = product["price_pence"] * req.quantity
-    order_id = f"ord_{len(_orders) + 1:04d}"
+    order_id = f"ord_{ledger.order_count() + 1:04d}"
 
     charge = ledger.charge(
         order_id=order_id,
@@ -96,7 +96,7 @@ def charges() -> dict:
     """The payments ledger. Agents read this to spot and prove a double charge."""
     return {
         "charges": [c.to_dict() for c in ledger.charges],
-        "refunds": [r.__dict__ for r in ledger.refunds],
+        "refunds": [r.to_dict() for r in ledger.refunds],
         "net_pence": sum(c.amount_pence - c.refunded_pence for c in ledger.charges),
     }
 
@@ -109,12 +109,15 @@ def refund(req: RefundRequest) -> dict:
         raise HTTPException(status_code=404, detail=str(e)) from e
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
-    return {"refund": r.__dict__}
+    return {"refund": r.to_dict()}
 
 
 @app.post("/api/_reset")
 def reset() -> dict:
-    """Demo helper: wipe orders and the ledger before recording a take."""
+    """Demo helper for humans only: wipe orders and the ledger before a take.
+
+    Agents must never call this. It destroys customers' payment records.
+    """
     _orders.clear()
     ledger.reset()
     return {"ok": True}

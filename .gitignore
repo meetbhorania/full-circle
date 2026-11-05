@@ -223,3 +223,6 @@ __marimo__/
 .env
 *.local.env
 .DS_Store
+
+# Live shop ledger (demo data)
+shop/data/

@@ -5,5 +5,9 @@ services:
     ports:
       - "8000:8000"
     volumes:
+      # Code and the ledger (shop/data/ledger.json) live on your Mac, so a
+      # restart after a deploy picks up merged code and keeps the ledger.
       - ./shop:/app/shop
-    command: uvicorn shop.app:app --host 0.0.0.0 --port 8000 --reload
+    # No --reload: agents editing files must not restart the live shop.
+    # Deploys happen only via `docker compose restart shop` (releaser).
+    command: uvicorn shop.app:app --host 0.0.0.0 --port 8000

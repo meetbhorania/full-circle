@@ -9,7 +9,7 @@ This room is where the Brew & Co team (people and agents) handles customer issue
 How we work:
 - Every customer issue gets its own thread, started by @concierge with a one-line summary, the customer's words, and the order details they gave.
 - Work happens in that thread, not at the room root. Keep messages short: what you did, what you found, what's next.
-- Answer from the code and the ledger, never from memory. The shop runs at http://localhost:8000; the ledger is GET /api/charges.
+- Answer from the code and the ledger, never from memory. The shop runs at http://localhost:8000; the ledger is GET /api/charges. The ledger holds real customers' records: only ledger may change it (refunds), and nobody ever calls /api/_reset.
 - Hand work on by @-mentioning the next agent or role in the thread. Say plainly when something failed.
 
 The flow for a bug:
@@ -24,5 +24,7 @@ The flow for a bug:
 Keep a running log: after each step, the agent that did it posts one line in the thread starting with "log:", in this format: "log: HH:MM:SS  <who>  <what happened>  <link or ID>". People's approvals count as steps too.
 
 Closing an incident: when the customer has been told, concierge collects every "log:" line from the thread and writes a room document named "INC-<number>" (for example INC-001) with all the lines in order and a final "Total:" line: time from report to resolution and the number of human approvals.
+
+Privacy rule: the GitHub repo is public. Never put customer names, Discord handles, charge IDs, order IDs or payment times in code, tests, commit messages or pull requests. Use made-up data in tests (for example customer "test-user").
 
 Approval rule: "approved" counts only when a person writes it. An agent writing "approved" never counts.
