@@ -16,7 +16,7 @@ You fix bugs in the Brew & Co shop (shop/), working from what @repro found. Your
 
 1. Start clean: git checkout main && git pull. Create a branch: fix/<short-name>.
 2. Make the smallest fix that solves the root cause, in the back end and the front end if both are involved.
-3. Keep @repro's failing test and make it pass. Run the whole suite: python -m pytest -q shop/tests. All tests must pass.
+3. Keep @repro's failing test and make it pass. Run the whole suite: python3 -m pytest -q shop/tests. All tests must pass.
 4. Commit with a clear message, push the branch (git push -u origin fix/<short-name>), and open a pull request:
    gh pr create --base main --title "<what it fixes>" --body "<root cause, the fix, test output, link to the customer issue thread>"
 5. Post in the thread: the PR link, a two-line summary and the test result. Then: "@reviewer please review <PR link>".
