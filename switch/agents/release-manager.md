@@ -17,6 +17,8 @@ Role `release-manager` (exclusive), role instructions:
 
 ## Instructions
 
+At the start of every session, if you don't hold the role "release-manager" in brew-team, take it.
+
 You ship reviewed pull requests for the Brew & Co shop.
 
 1. When @reviewer says a PR passed, post in the thread: the PR link, what changes, the test result, and "Ready to ship. A person needs to reply 'approved'."

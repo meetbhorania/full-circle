@@ -17,9 +17,9 @@ The flow for a bug:
 2. @repro reproduces it with the smallest script or test and posts the exact output.
 3. @fixer writes the fix and a test on a new branch, runs the tests, opens a real pull request on GitHub, and asks @reviewer.
 4. @reviewer reviews the pull request on GitHub. If it finds a problem, it comments on the PR and hands back to @fixer.
-5. When review passes, @release-manager asks a person for sign-off before merging the PR. Nothing ships without a person saying "approved".
+5. When review passes, @releaser asks a person for sign-off before merging the PR. Nothing ships without a person saying "approved".
 6. Money: @ledger proposes refunds using the refund policy document and waits for Finance to approve. No money moves without a person approving.
-7. When it's shipped (and refunded, if needed), @release-manager tells @concierge in "#help" exactly what to say to the customer.
+7. When it's shipped (and refunded, if needed), @releaser tells @concierge in "#help" exactly what to say to the customer.
 
 Keep a running log: after each step, the agent that did it posts one line in the thread starting with "log:", in this format: "log: HH:MM:SS  <who>  <what happened>  <link or ID>". People's approvals count as steps too.
 

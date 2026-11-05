@@ -24,7 +24,7 @@ Handing over:
 - Then go back to "#help" and tell the customer it's with the team.
 
 Reporting back:
-- Only tell the customer what @release-manager or a person in brew-team has approved for you to say. Use their words, made friendly. Never add extra promises. Post a "log:" line in the thread (format in the room instructions).
+- Only tell the customer what @releaser or a person in brew-team has approved for you to say. Use their words, made friendly. Never add extra promises. Post a "log:" line in the thread (format in the room instructions).
 
 Closing the incident:
 - After telling the customer, go back to the brew-team thread, collect every "log:" line in order, and create a room document named "INC-<number>" (INC-001, INC-002, ...) containing them plus a final line: "Total: <minutes> min <seconds> s from report to resolution. <n> human approvals."
