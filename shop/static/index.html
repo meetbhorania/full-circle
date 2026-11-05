@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Brew & Co</title>
+  <style>
+    :root {
+      --bg: #f6f1ea; --card: #fffdf9; --ink: #2b1d14; --muted: #7a6656;
+      --accent: #8a4b2a; --accent-ink: #fff; --line: #e6dccf; --ok: #2f7a4b; --bad: #b3261e;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #17120e; --card: #221a14; --ink: #f3e9df; --muted: #b7a493;
+              --accent: #d08a5c; --accent-ink: #17120e; --line: #3a2e25; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+           background: var(--bg); color: var(--ink); }
+    main { max-width: 440px; margin: 48px auto; padding: 0 16px; }
+    h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.02em; }
+    .sub { color: var(--muted); margin: 0 0 24px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+    label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 6px; }
+    select, input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line);
+                    background: var(--bg); color: var(--ink); font: inherit; }
+    .row { display: flex; gap: 12px; }
+    .row > div { flex: 1; }
+    .total { display: flex; justify-content: space-between; margin: 20px 0 16px; font-weight: 600; }
+    button { width: 100%; padding: 13px; border: 0; border-radius: 10px; background: var(--accent);
+             color: var(--accent-ink); font: inherit; font-weight: 600; cursor: pointer; }
+    button:disabled { opacity: .55; cursor: default; }
+    #status { margin-top: 14px; min-height: 22px; font-size: 14px; }
+    .ok { color: var(--ok); } .bad { color: var(--bad); }
+    footer { margin-top: 18px; font-size: 12px; color: var(--muted); text-align: center; }
+    footer a { color: inherit; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>☕ Brew &amp; Co</h1>
+  <p class="sub">Small-batch coffee, delivered.</p>
+
+  <div class="card">
+    <label for="customer">Your name</label>
+    <input id="customer" value="Sam" autocomplete="name">
+
+    <div class="row">
+      <div>
+        <label for="item">Item</label>
+        <select id="item"></select>
+      </div>
+      <div style="max-width:90px">
+        <label for="qty">Qty</label>
+        <input id="qty" type="number" min="1" max="20" value="1">
+      </div>
+    </div>
+
+    <div class="total"><span>Total</span><span id="total">£0.00</span></div>
+    <button id="pay">Pay now</button>
+    <div id="status" role="status"></div>
+  </div>
+
+  <footer>Demo shop for Full Circle · no real payments · <a href="/api/charges">ledger</a></footer>
+</main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  let menu = {};
+
+  const fmt = (p) => "£" + (p / 100).toFixed(2);
+  const total = () => (menu[$("item").value]?.price_pence || 0) * (parseInt($("qty").value) || 1);
+  const render = () => { $("total").textContent = fmt(total()); };
+
+  async function load() {
+    menu = await (await fetch("/api/menu")).json();
+    $("item").innerHTML = Object.entries(menu)
+      .map(([k, v]) => `<option value="${k}">${v.name} · ${fmt(v.price_pence)}</option>`).join("");
+    render();
+  }
+
+  // One key per checkout attempt, so the server can tell a retry from a new order.
+  let attemptKey = crypto.randomUUID();
+
+  async function pay() {
+    $("status").textContent = "Processing payment…";
+    $("status").className = "";
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customer: $("customer").value,
+          item: $("item").value,
+          quantity: parseInt($("qty").value) || 1,
+          idempotency_key: attemptKey,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "payment failed");
+      $("status").textContent = `Paid ${fmt(data.charge.amount_pence)} · order ${data.order.order_id}`;
+      $("status").className = "ok";
+      attemptKey = crypto.randomUUID();
+    } catch (e) {
+      $("status").textContent = "Something went wrong: " + e.message;
+      $("status").className = "bad";
+    }
+  }
+
+  $("item").addEventListener("change", render);
+  $("qty").addEventListener("input", render);
+  $("pay").addEventListener("click", pay);
+  load();
+</script>
+</body>
+</html>

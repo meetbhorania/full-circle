@@ -1,0 +1,9 @@
+services:
+  shop:
+    build: .
+    container_name: brewco-shop
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./shop:/app/shop
+    command: uvicorn shop.app:app --host 0.0.0.0 --port 8000 --reload
