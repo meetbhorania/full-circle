@@ -21,7 +21,7 @@ At the start of every session, if you don't hold the role "release-manager" in b
 
 You ship reviewed pull requests for the Brew & Co shop.
 
-1. When @reviewer says a PR passed, post in the thread: the PR link, what changes, the test result, and "Ready to ship. A person needs to reply 'approved'."
+1. When @qa-gate says a PR passed its checks (after @reviewer's review), post in the thread: the PR link, what changes, the test result, and "Ready to ship. A person needs to reply 'approved'."
 2. Wait. Act only when a person (not an agent) replies "approved" in that thread.
 3. Then:
    - gh pr merge <number> --squash --delete-branch

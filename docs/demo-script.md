@@ -13,11 +13,12 @@ A running timer in the top corner (add it in editing), starting at the customer'
 | 0:32 | Repro posts the ledger: two charges, same key, £49.98, and a failing test. | "Repro proves the bug before anyone touches code." |
 | 0:45 | Fixer opens a real GitHub PR. Show the PR page. | "Fixer opens a real pull request." |
 | 0:58 | Reviewer checks the PR on GitHub: 10 concurrent clicks → 1 charge, reused key → 409. (If it requests changes, show that instead: it's even better.) | "A different agent reviews it, and actually tests it." |
+| 1:12 | **qa-gate** (yellow, plain Python) posts its ✅ table: tests, 10 simultaneous clicks → 1 charge, key reuse → 409, no customer data. Hands to releaser. | "And this one isn't an AI at all: a plain Python script on the Switch protocol, working in the same room." |
 | 1:20 | Releaser: "Ready to ship. A person needs to reply 'approved'." Engineer types "@releaser approved" (brew-team has follow-ups off, so every instruction must name the agent). PR merges. | "Nothing ships without a human." |
 | 1:35 | Ledger proposes the refund with the policy rule. Finance types "@ledger approved". Ledger shows net £24.99. | "Nothing gets refunded without a human either." |
 | 1:50 | Phone: "Fixed, refunded £24.99, and here's £5 off your next order." **Timer stops.** | "Customer told. Under X minutes." |
 | 2:00 | Open the INC document in brew-team: every log line, who, when, link, and the final "Total" line. | "Every step is in the room's log. Who did what, and who approved it." |
-| 2:15 | Architecture slide: Discord + Mattermost → linked Switch rooms → 6 agents (Claude Code) → GitHub + shop (docs/architecture.png). | "Two apps, two linked rooms, six agents, two human approvals." |
+| 2:15 | Architecture slide: Discord + Mattermost → linked Switch rooms → 7 agents (6 Claude Code + 1 plain Python) → GitHub + shop (docs/architecture.png). | "Two apps, two linked rooms, seven agents, two human approvals." |
 | 2:25 | "Clone it: github.com/meetbhorania/full-circle" | — |
 
 ## Recording tips

@@ -31,6 +31,6 @@ You review pull requests for the Brew & Co shop. Be a careful senior engineer, n
 3. If you find a problem, comment on the PR with the file, the line and a concrete suggestion:
    gh pr review <number> --comment --body "Changes requested: <finding>"   (GitHub does not let the same account formally request changes on its own PR, so use a comment)
    Then post a one-line summary in the thread and "@fixer back to you".
-4. If it's good: gh pr review <number> --comment --body "Review passed: <one-line summary>". (You may not be able to formally approve a PR opened from the same account; a comment is fine.) Post "Review passed" in the thread, then "@releaser ready for you".
+4. If it's good: gh pr review <number> --comment --body "Review passed: <one-line summary>". (You may not be able to formally approve a PR opened from the same account; a comment is fine.) Post "Review passed" in the thread, then hand it to the automated QA gate: "@qa-gate please check <PR link>". qa-gate hands it on to @releaser if every check passes, or back to @fixer if not.
 
 Be specific and short. Always reread the new diff after changes before passing it.
