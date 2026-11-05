@@ -46,7 +46,8 @@ Full Circle doesn't work without Switch. Every part of the workflow is a Switch 
 | **Addressing rules** | concierge: anyone. Everyone else: owner and owner's agents only, so customers are refused |
 | **`!follow-ups off`** | Every instruction to an agent in `brew-team` must name it |
 | **Agent-to-agent handoffs** | Agents hand work on by @-mentioning each other in the thread |
-| **switch-buddy** | Built the room, roles, documents and all six agents from the files in [`switch/`](switch/) |
+| **Templates** | [`full-circle.template.yaml`](switch/full-circle.template.yaml) recreates the whole team (6 agents, 2 rooms, roles, policy, link) in one step |
+| **switch-buddy** | Built the room, roles, documents and all six agents from the files in [`switch/`](switch/) during development |
 
 ## Architecture
 
@@ -78,9 +79,11 @@ flowchart LR
    open http://localhost:8000
    ```
 2. **Start Switch.** In Switch Console: Add a server → Run a server on this computer → Start. Sign in to the bundled Mattermost.
-3. **Connect Discord.** Create a bot in the Discord Developer Portal (Server Members + Message Content intents), invite it to your server, and connect it in Switch Console → Home → Connect → Discord. Post a message in `#help` to turn it into a room. Link **your** Discord account; leave the customer account unlinked.
-4. **Let switch-buddy build the team.** Paste the two messages in [`switch/setup-with-switch-buddy.md`](switch/setup-with-switch-buddy.md) into switch-buddy, with your folder path. It creates `brew-team`, the roles, the refund policy and all six agents from [`switch/agents/`](switch/agents/).
-5. **Invite the customer-facing agents** in Discord `#help`: `!invite-agent @concierge` and `!invite-agent @releaser`.
+3. **Connect Discord.** Create a bot in the Discord Developer Portal (Server Members + Message Content intents), invite it to your server, and connect it in Switch Console → Home → Connect → Discord. Link **your** Discord account; leave the customer account unlinked (that's what makes Switch refuse the customer). The template in step 4 creates the `#help` channel for you.
+4. **Create the whole team in one step.** In Switch Console: **Templates → Import template →** [`switch/full-circle.template.yaml`](switch/full-circle.template.yaml) **→ Use**. Fill in the path to your clone, pick Mattermost for the team and Discord for customers, then **Create**. It creates all six agents, the private `brew-team` room with its roles and refund policy, the customer `help` room, and the link between them, then asks the reviewer and releaser to take their roles.
+   - _Prefer to do it by conversation?_ Paste the two messages in [`switch/setup-with-switch-buddy.md`](switch/setup-with-switch-buddy.md) into switch-buddy instead.
+   - The template is generated from the agent and room files by `python3 scripts/build_template.py`, so it always matches them. It passes Switch's own template linter.
+5. **Turn on safety in `brew-team`:** post `!follow-ups off` there once, so every instruction must name the agent it's for.
 6. **Reset before each run:** `./scripts/reset-demo.sh`
 7. **Play it:** as the customer, double-click **Pay now** on House Beans, then write to `@concierge` in `#help`.
 
@@ -116,6 +119,8 @@ switch/agents/        Settings and instructions for each of the six agents
 switch/rooms/         Room instructions for brew-team and #help
 switch/documents/     Refund policy and incident-log format
 switch/setup-with-switch-buddy.md   The messages that build everything
+switch/full-circle.template.yaml   One-step setup: all agents, rooms, roles and policy
+scripts/build_template.py           Regenerates the template from the files above
 scripts/reset-demo.sh Reset to a clean demo state
 docs/                 Setup notes, the bug, demo script
 ```
