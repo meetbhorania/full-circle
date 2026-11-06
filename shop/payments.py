@@ -48,12 +48,26 @@ class Refund:
         return asdict(self)
 
 
+@dataclass
+class Credit:
+    id: str
+    customer: str
+    amount_pence: int
+    reason: str
+    approved_by: str
+    created_at: str
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
 class Ledger:
     def __init__(self, path: Path | None = None) -> None:
         self.path = Path(path or os.environ.get("LEDGER_PATH", DEFAULT_PATH))
         self._lock = threading.Lock()
         self.charges: list[Charge] = []
         self.refunds: list[Refund] = []
+        self.credits: list[Credit] = []
         self._seq = 0
         self._load()
 
@@ -64,6 +78,7 @@ class Ledger:
         data = json.loads(self.path.read_text() or "{}")
         self.charges = [Charge(**c) for c in data.get("charges", [])]
         self.refunds = [Refund(**r) for r in data.get("refunds", [])]
+        self.credits = [Credit(**c) for c in data.get("credits", [])]
         self._seq = data.get("seq", 0)
 
     def _save(self) -> None:
@@ -73,6 +88,7 @@ class Ledger:
             "seq": self._seq,
             "charges": [c.to_dict() for c in self.charges],
             "refunds": [r.to_dict() for r in self.refunds],
+            "credits": [c.to_dict() for c in self.credits],
         }, indent=2))
         tmp.replace(self.path)
 
@@ -137,10 +153,28 @@ class Ledger:
             self._save()
             return r
 
+    def credit(self, customer: str, amount_pence: int, reason: str, approved_by: str) -> Credit:
+        """Goodwill credit on a customer's next order."""
+        with self._lock:
+            if amount_pence <= 0 or amount_pence > 2000:
+                raise ValueError("credit must be between 1 and 2000 pence")
+            c = Credit(
+                id=self._next("cr"),
+                customer=customer,
+                amount_pence=amount_pence,
+                reason=reason,
+                approved_by=approved_by,
+                created_at=_now(),
+            )
+            self.credits.append(c)
+            self._save()
+            return c
+
     def reset(self) -> None:
         with self._lock:
             self.charges.clear()
             self.refunds.clear()
+            self.credits.clear()
             self._seq = 0
             self._save()
 

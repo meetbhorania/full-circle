@@ -54,3 +54,18 @@ def test_cannot_over_refund():
         "charge_id": ch["id"], "amount_pence": 9999, "reason": "test", "approved_by": "finance",
     })
     assert r.status_code == 400
+
+
+def test_goodwill_credit_is_recorded():
+    r = client.post("/api/credits", json={
+        "customer": "test-user", "amount_pence": 500, "reason": "test", "approved_by": "finance",
+    })
+    assert r.status_code == 200
+    assert client.get("/api/charges").json()["credits"][0]["amount_pence"] == 500
+
+
+def test_credit_has_a_ceiling():
+    r = client.post("/api/credits", json={
+        "customer": "test-user", "amount_pence": 99999, "reason": "test", "approved_by": "finance",
+    })
+    assert r.status_code == 400

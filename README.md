@@ -9,6 +9,12 @@ Built for the [Flip the Switch hackathon](https://www.wemakedevs.org/hackathons/
 
 ---
 
+## The scenario: one complaint, fourteen victims
+
+Brew & Co runs a flash sale. Thirty customers check out in a few minutes, and a bug quietly charges thirteen of them twice. Nobody notices. Then one customer, Sam, double-taps Pay on a bag of beans and writes in: "I was charged twice!"
+
+A normal support flow refunds Sam and closes the ticket. Full Circle treats Sam's message as a symptom: the agents find the bug, fix it, ship it, then sweep the whole ledger and refund **every** customer it hit, all **14 of them, about £383**, with a £5 credit each, before anyone else has to complain. Because the total is over £50, the refund policy needs **two** people: Finance *and* the engineering lead.
+
 ## The problem
 
 A customer writes "I was charged twice". Today that message lands in a support inbox, gets copied into the team chat, someone tries to reproduce it, someone else fixes it, someone reviews, someone deploys, finance refunds, and support finally replies. Every handoff loses context and time, and nobody can see the whole trail afterwards.
@@ -19,14 +25,14 @@ A customer writes "I was charged twice". Today that message lands in a support i
 |---|---|---|
 | 1. Customer reports a double charge | Sam (customer) | Discord `#help` |
 | 2. Answers the customer, opens an issue thread for the team | **concierge** agent | Discord → Mattermost `brew-team` |
-| 3. Reproduces the bug with a failing test, using the live ledger as evidence | **repro** agent | `brew-team` |
+| 3. Reproduces the bug with a failing test and measures the **blast radius**: every customer the bug hit, from the live ledger | **repro** agent | `brew-team` |
 | 4. Fixes it in a separate worktree and opens a **real GitHub pull request** | **fixer** agent | `brew-team` + GitHub |
 | 5. Reviews the PR on GitHub, requests changes when needed | **reviewer** agent (role `code-review`) | `brew-team` + GitHub |
 | 6. Runs the tests, a 10-click concurrency stress test, a key-reuse check and a privacy scan. **Plain Python, no LLM** | **qa-gate** (custom agent on the Switch protocol) | `brew-team` |
 | 7. Asks a person for sign-off, then merges and deploys | **releaser** agent (role `release-manager`) + **you** | `brew-team` + GitHub |
-| 8. Proposes the refund under the room's refund policy, then pays it | **ledger** agent + **you, as Finance** | `brew-team` |
+| 8. Proposes refunds for **all** affected customers plus £5 credits under the room's refund policy, then pays them | **ledger** agent + **you, as Finance and engineering lead** (two approvals over £50) | `brew-team` |
 | 9. Tells the customer exactly what was approved | **concierge** | Discord `#help` |
-| 10. Writes the audit trail (`INC-001`) with total time and human approvals | **concierge** | `brew-team` room document |
+| 10. Writes the audit trail (`INC-<n>`) with impact (customers protected, £ refunded), total time and human approvals | **concierge** | `brew-team` room document |
 
 **Safety built in:**
 - **Customers can't instruct the agents that touch code or money.** Switch refuses them. Only the concierge answers customers, and it can't promise anything.
@@ -90,7 +96,8 @@ flowchart LR
 5. **Add the custom agent** `qa-gate`: register and run it in 5 minutes, see [`agents/qa-gate/README.md`](agents/qa-gate/README.md).
 6. **Turn on safety in `brew-team`:** post `!follow-ups off` there once, so every instruction must name the agent it's for.
 7. **Reset before each run:** `./scripts/reset-demo.sh`
-8. **Play it:** as the customer, double-click **Pay now** on House Beans, then write to `@concierge` in `#help`.
+8. **Run the flash sale:** `./scripts/flash-sale.sh` (30 made-up customers check out; 13 of them double-tap and are silently charged twice).
+9. **Play it:** as the customer, double-click **Pay now** on House Beans, then write to `@concierge` in `#help`. Approve as `@releaser approved`, then `@ledger approved (Finance)` and `@ledger approved (engineering lead)`.
 
 Full setup notes and the gotchas we hit are in [`docs/setup-notes.md`](docs/setup-notes.md).
 
@@ -100,7 +107,9 @@ The checkout ignores the idempotency key the page sends, and the Pay button stay
 
 ## Result of a full run
 
-In rehearsal 2 the whole loop ran end to end, and the concierge closed it in `INC-001`:
+_Rehearsal 3 (flash sale, 14 customers) result goes here._
+
+In rehearsal 2 (a single customer) the whole loop ran end to end, and the concierge closed it in `INC-001`:
 
 > **17 min 38 s** from the customer's message to telling the customer, with **2 human approvals** (ship, refund) and a real merged pull request ([#2](https://github.com/meetbhorania/full-circle/pull/2)).
 

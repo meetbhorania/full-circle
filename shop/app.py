@@ -40,6 +40,13 @@ class CheckoutRequest(BaseModel):
     )
 
 
+class CreditRequest(BaseModel):
+    customer: str = Field(min_length=1, max_length=80)
+    amount_pence: int = Field(gt=0)
+    reason: str = Field(min_length=1)
+    approved_by: str = Field(min_length=1)
+
+
 class RefundRequest(BaseModel):
     charge_id: str
     amount_pence: int = Field(gt=0)
@@ -97,6 +104,7 @@ def charges() -> dict:
     return {
         "charges": [c.to_dict() for c in ledger.charges],
         "refunds": [r.to_dict() for r in ledger.refunds],
+        "credits": [c.to_dict() for c in ledger.credits],
         "net_pence": sum(c.amount_pence - c.refunded_pence for c in ledger.charges),
     }
 
@@ -110,6 +118,16 @@ def refund(req: RefundRequest) -> dict:
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     return {"refund": r.to_dict()}
+
+
+@app.post("/api/credits")
+def credit(req: CreditRequest) -> dict:
+    """Goodwill credit on the customer's next order (refund policy rule 2)."""
+    try:
+        c = ledger.credit(req.customer, req.amount_pence, req.reason, req.approved_by)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    return {"credit": c.to_dict()}
 
 
 @app.post("/api/_reset")
