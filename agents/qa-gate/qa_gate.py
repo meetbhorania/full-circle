@@ -14,6 +14,7 @@ then posts a pass/fail table in the thread and hands the PR to @releaser
 
     python3 qa_gate.py register   # once: registers the agent with Switch
     python3 qa_gate.py run        # keep running while you demo
+    python3 qa_gate.py allow      # (re)set: you and your agents may address it
 
 Settings come from environment variables (see README.md next to this file).
 """
@@ -80,13 +81,61 @@ class Ops:
 # --------------------------------------------------------------------------
 # register
 # --------------------------------------------------------------------------
+OWNER_AND_OWNER_AGENTS = {"rules": [{"rooms": "*", "room_groups": "*", "users": [], "agents": [],
+                                     "owner": True, "owner_agents": True, "platform": False}]}
+_gateway: httpx.Client | None = None
+
+
+def gateway() -> httpx.Client:
+    """A Gateway API session as the signed-in owner (asks once per run)."""
+    global _gateway
+    if _gateway is None:
+        import getpass
+        print("Sign in to Switch (the same admin account as Switch Console).")
+        email = input("Email: ").strip()
+        password = getpass.getpass("Password (hidden): ")
+        _gateway = httpx.Client(base_url=f"{API}/gateway", timeout=60)
+        r = _gateway.post("/auth/login", json={"email": email, "password": password})
+        if r.status_code != 200:
+            sys.exit(f"Sign-in failed ({r.status_code}): {r.text[:200]}")
+    return _gateway
+
+
+def allow(agent_id: str | None = None) -> None:
+    """Let you and your agents address qa-gate. Only the owner may set this."""
+    agent_id = agent_id or load_state()["agent_id"]
+    r = gateway().put(f"/agents/{agent_id}/addressing-policy", json={"policy": OWNER_AND_OWNER_AGENTS})
+    if r.status_code != 200:
+        sys.exit(f"Couldn't set who can talk to qa-gate ({r.status_code}): {r.text[:200]}")
+    print("Who can talk to qa-gate: you and your agents (customers are refused).")
+
+
+def registration_key_from_login() -> str:
+    """Create a registration key through the Gateway API, as the signed-in admin.
+
+    The Gateway API is mounted at {API}/gateway. Logging in sets a session
+    cookie; POST /gateway/api-keys then returns a new registration key, owned
+    by you, so qa-gate becomes your agent. The password is never stored.
+    """
+    r = gateway().post("/api-keys", json={"label": "qa-gate"})
+    if r.status_code != 200:
+        sys.exit(f"Couldn't create a registration key ({r.status_code}): {r.text[:200]}")
+    print("Created a registration key labelled 'qa-gate'.")
+    return r.json()["key"]
+
+
 def register() -> None:
     try:
         httpx.get(f"{API}/health", timeout=5).raise_for_status()
     except Exception as exc:  # noqa: BLE001
         sys.exit(f"Can't reach the Switch agent bridge at {API}/health ({exc}).\n"
                  "Set SWITCH_API_URL to your server's API URL.")
-    key = os.environ.get("SWITCH_REGISTRATION_KEY") or input("Registration key (Gateway → API Keys): ").strip()
+    pending = STATE.with_suffix(".regkey")
+    key = os.environ.get("SWITCH_REGISTRATION_KEY") or (pending.read_text().strip() if pending.exists() else "")
+    if not key:
+        key = registration_key_from_login()
+        pending.parent.mkdir(parents=True, exist_ok=True)
+        pending.write_text(key); pending.chmod(0o600)  # reused if this run is interrupted
     body = {
         "name": NAME,
         "display_name": NAME,
@@ -100,20 +149,23 @@ def register() -> None:
             "event_reporting": [],
         },
     }
-    r = httpx.post(f"{API}/agents", json=body, headers={"Authorization": f"Bearer {key}"}, timeout=30)
+    print("Registering qa-gate on every connected messaging app (can take a minute or two)...")
+    r = httpx.post(f"{API}/agents", json=body, headers={"Authorization": f"Bearer {key}"}, timeout=180)
     if r.status_code == 409:
-        sys.exit("An agent named qa-gate already exists. Delete it in Switch Console, then register again.")
-    r.raise_for_status()
+        # Usually an earlier attempt that finished after we stopped waiting.
+        # overwrite=true re-issues the agent's key; it only works if it's yours.
+        print("qa-gate already exists (probably from an earlier attempt); re-registering it...")
+        r = httpx.post(f"{API}/agents", json={**body, "overwrite": True},
+                       headers={"Authorization": f"Bearer {key}"}, timeout=180)
+    if r.status_code != 200:
+        sys.exit(f"Registration failed ({r.status_code}): {r.text[:300]}")
     data = r.json()
     save_state({"agent_id": data["id"], "api_key": data["api_key"], "connection_id": str(uuid.uuid4())})
+    pending.unlink(missing_ok=True)
+    print(f"Registered {NAME} ({data['id']}).")
     # Let the owner's other agents (fixer, reviewer) hand it work; customers stay refused.
-    r = httpx.post(
-        f"{API}/agents/{data['id']}/ops/update_agent_detail",
-        json={"agent_id": data["id"], "addressing": "owner_and_owner_agents"},
-        headers={"Authorization": f"Bearer {data['api_key']}"},
-        timeout=30,
-    )
-    print(f"Registered {NAME} ({data['id']}). Addressing: {r.status_code == 200 and 'owner and owner agents' or r.text}")
+    # Switch only lets the owner change this, not the agent itself.
+    allow(data["id"])
     print(f"API key saved to {STATE} (keep it private). Now invite qa-gate to brew-team, then run:")
     print(f"  python3 {Path(__file__).name} run")
 
@@ -284,6 +336,8 @@ if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else ""
     if cmd == "register":
         register()
+    elif cmd == "allow":
+        allow()
     elif cmd == "run":
         asyncio.run(run())
     else:

@@ -22,17 +22,15 @@ Tested against the real PRs: PR #2 passes all four; PR #1 fails "same key, diffe
 ## Set it up (about 5 minutes)
 
 1. **Find your Switch API URL** (the agent bridge, not the Gateway). For a local Switch Console server it's usually `http://localhost:63126`. Check: `curl http://localhost:63126/health`.
-2. **Create a registration key:** open the Gateway → **API Keys** → create a key of type **registration**. (You become the agent's owner.)
-3. **Install and register** (from the repo root):
+2. **Install and register** (from the repo root):
    ```bash
    python3 -m venv agents/qa-gate/.venv
    agents/qa-gate/.venv/bin/pip install -r agents/qa-gate/requirements.txt
-   export SWITCH_API_URL=http://localhost:63126
    agents/qa-gate/.venv/bin/python agents/qa-gate/qa_gate.py register
    ```
-   It asks for the registration key, registers `qa-gate`, sets who may address it to *you and your agents* (customers are refused), and saves its own API key to `~/.config/full-circle/qa-gate.json` (outside the repo, owner-only).
-4. **Invite it to brew-team:** in `brew-team`, post `!invite-agent @qa-gate`.
-5. **Run it** (leave this terminal open during the demo):
+   It asks for your Switch admin email and password (the same account as Switch Console), creates a registration key through the Gateway API (`/gateway/api-keys`), registers `qa-gate` with you as its owner, sets who may address it to *you and your agents* (customers are refused), and saves its own API key to `~/.config/full-circle/qa-gate.json` (outside the repo, owner-only). The password is never stored. Already have a registration key? Set `SWITCH_REGISTRATION_KEY` and it skips sign-in.
+3. **Invite it to brew-team:** in `brew-team`, post `!invite-agent @qa-gate`.
+4. **Run it** (leave this terminal open during the demo):
    ```bash
    agents/qa-gate/.venv/bin/python agents/qa-gate/qa_gate.py run
    ```

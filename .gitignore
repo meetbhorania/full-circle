@@ -227,3 +227,4 @@ __marimo__/
 # Live shop ledger (demo data)
 shop/data/
 agents/qa-gate/.venv/
+agents/qa-gate/.venv/
