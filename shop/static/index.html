@@ -82,8 +82,6 @@
   let attemptKey = crypto.randomUUID();
 
   async function pay() {
-    if ($("pay").disabled) return;  // a payment is already in flight
-    $("pay").disabled = true;
     $("status").textContent = "Processing payment…";
     $("status").className = "";
     try {
@@ -105,8 +103,6 @@
     } catch (e) {
       $("status").textContent = "Something went wrong: " + e.message;
       $("status").className = "bad";
-    } finally {
-      $("pay").disabled = false;
     }
   }
 
